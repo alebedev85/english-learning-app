@@ -1,4 +1,8 @@
+// @/components/WordForm/WordForm.tsx
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useDispatch } from 'react-redux';
+import { addWord } from '@/store/slices/dictionarySlice';
 import styles from './WordForm.module.scss';
 
 export interface WordFormInputs {
@@ -8,11 +12,40 @@ export interface WordFormInputs {
 }
 
 export default function WordForm() {
-  const { register, handleSubmit } = useForm<WordFormInputs>();
+  const dispatch = useDispatch();
+  const { register, handleSubmit, reset, watch } = useForm<WordFormInputs>();
+  
+  // Локальные состояния анимаций ИИ
+  const [translatingWord, setTranslatingWord] = useState(false);
+  const [generatingImg, setGeneratingImg] = useState(false);
 
-  // Временный пустой обработчик сабмита, логику добавим позже
+  const currentEnglishValue = watch('english');
+
+  // Фейковый автоматический перевод (имитация работы Gemini ИИ)
+  const handleAiTranslate = () => {
+    if (!currentEnglishValue?.trim()) return;
+    
+    setTranslatingWord(true);
+    setTimeout(() => {
+      // Здесь в будущем будет реальный запрос к API
+      setTranslatingWord(false);
+    }, 1200);
+  };
+
   const onSubmit = (data: WordFormInputs) => {
-    console.log(data);
+    setGeneratingImg(true);
+
+    // Имитируем генерацию картинки через Imagen, затем сохраняем в стор
+    setTimeout(() => {
+      dispatch(addWord({
+        english: data.english,
+        russian: data.russian,
+        context: data.context || '',
+      }));
+      
+      setGeneratingImg(false);
+      reset(); // Очищаем форму после успешного добавления
+    }, 1500);
   };
 
   return (
@@ -33,14 +66,20 @@ export default function WordForm() {
               type="text"
               required
               placeholder="e.g. Dream"
-              {...register('english')}
+              {...register('english', { required: true })}
               className={styles.inputField}
             />
             <button
               type="button"
+              onClick={handleAiTranslate}
+              disabled={translatingWord || !currentEnglishValue?.trim()}
               className={styles.translateButton}
             >
-              🤖 ИИ Перевод
+              {translatingWord ? (
+                <span className={styles.spinner} />
+              ) : (
+                <>🤖 ИИ Перевод</>
+              )}
             </button>
           </div>
         </div>
@@ -52,7 +91,7 @@ export default function WordForm() {
             type="text"
             required
             placeholder="Заполнится автоматически через ИИ или введите сами"
-            {...register('russian')}
+            {...register('russian', { required: true })}
             className={styles.inputField}
           />
         </div>
@@ -79,8 +118,18 @@ export default function WordForm() {
         </div>
 
         {/* Кнопка отправки формы */}
-        <button type="submit" className={styles.submitButton}>
-          Добавить слово в словарь
+        <button type="submit" disabled={generatingImg} className={styles.submitButton}>
+          {generatingImg ? (
+            <>
+              <svg className={styles.submitSpinner} fill="none" viewBox="0 0 24 24">
+                <circle style={{ opacity: 0.25 }} cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path style={{ opacity: 0.75 }} fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Генерация ИИ-иллюстрации...
+            </>
+          ) : (
+            'Добавить слово в словарь'
+          )}
         </button>
       </form>
     </div>

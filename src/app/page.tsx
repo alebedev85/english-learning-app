@@ -53,7 +53,7 @@ export default function HomePage() {
       case 'add':
         return <WordForm />;
       case 'dictionary':
-        return <DictionaryList />;
+        return <DictionaryList  />;
       case 'profiles':
         return <ProfileManager />;
       default:

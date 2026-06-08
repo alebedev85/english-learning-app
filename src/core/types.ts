@@ -9,7 +9,7 @@ export interface IWord {
   english: string;
   russian: string;
   context: string;
-  imageUrl: string;
+  imageUrl?: string;
   progress: number; // 0-100
   status: WordStatus;
   createdAt: string | Timestamp;
