@@ -4,19 +4,11 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { changeProfile, addProfile } from '@/store/slices/dictionarySlice';
 import styles from './ProfileManager.module.scss';
 
-// Типизация корневого состояния (можешь заменить на свой RootState из store)
-interface RootState {
-  dictionary: {
-    profiles: string[];
-    currentProfile: string;
-  };
-}
-
 export default function ProfileManager() {
   const dispatch = useAppDispatch();
   
   // Достаем плоские данные из стейта по Варианту 1
-  const { profiles, currentProfile } = useAppSelector((state: RootState) => state.dictionary);
+  const { profiles, currentProfile } = useAppSelector((state) => state.dictionary);
   
   const [newProfileName, setNewProfileName] = useState('');
 
