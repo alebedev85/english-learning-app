@@ -1,0 +1,159 @@
+// Локальные цвета этапов, которых не было в :root
+$color-sky: #38bdf8;
+$color-violet: #a78bfa;
+
+.welcomeCard {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--bg-card);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-xl) var(--space-xl); // На больших экранах можно увеличить, базово p-8 -> 2rem
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); // shadow-2xl
+
+  @media (min-width: 640px) {
+    padding: 2rem;
+  }
+}
+
+// Задний фон: декоративные размытые круги
+.blurBackground {
+  position: absolute;
+  width: 12rem; // 48
+  height: 12rem;
+  border-radius: 50%;
+  filter: blur(64px); // blur-3xl
+  pointer-events: none;
+}
+
+.blurTopLeft {
+  @extend .blurBackground;
+  top: -6rem;
+  left: -6rem;
+  background-color: rgba(16, 185, 129, 0.1); // bg-emerald-500/10
+}
+
+.blurBottomRight {
+  @extend .blurBackground;
+  bottom: -6rem;
+  right: -6rem;
+  background-color: rgba(20, 184, 166, 0.1); // bg-teal-500/10
+}
+
+.contentWrapper {
+  position: relative;
+  z-index: 10;
+  max-width: 32rem; // max-w-lg
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.rocketBadge {
+  display: inline-flex;
+  background: linear-gradient(to top right, rgba(16, 185, 129, 0.2), rgba(20, 184, 166, 0.2));
+  padding: var(--layout-max-width) var(--space-lg); // p-4 -> 1rem
+  padding: 1rem;
+  border-radius: var(--radius-3xl); // rounded-2xl у тебя, но у нас в корне есть 3xl, либо кастом
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  font-size: 2.25rem; // text-4xl
+  margin-bottom: var(--space-xl);
+}
+
+.title {
+  font-size: 1.875rem; // text-3xl
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.profileInfo {
+  font-size: 0.75rem; // text-xs
+  color: var(--color-indigo-light);
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: 0.875rem; // text-sm
+  margin-bottom: 2rem; // mb-8
+  line-height: 1.625; // leading-relaxed
+
+  .highlight {
+    color: var(--color-emerald-light);
+  }
+}
+
+// Сетка этапов
+.stepsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+  margin-bottom: 2rem;
+  text-align: left;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.stepCard {
+  background-color: var(--bg-main);
+  padding: 0.875rem; // p-3.5
+  border-radius: var(--radius-xl); // rounded-xl
+  border: 1px solid var(--bg-card);
+}
+
+.stepTitle {
+  display: block;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em; // tracking-wider
+  margin-bottom: var(--space-xs);
+
+  &.emerald { color: var(--color-emerald-light); }
+  &.teal { color: var(--color-teal-light); }
+  &.sky { color: $color-sky; }
+  &.violet { color: $color-violet; }
+}
+
+.stepDesc {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+// Кнопка и футер
+.actionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.startButton {
+  width: 100%;
+  background: linear-gradient(to right, var(--color-emerald), var(--color-teal));
+  color: var(--bg-main);
+  font-weight: 900; // font-black
+  font-size: 1.125rem; // text-lg
+  padding: var(--space-lg) 0;
+  border-radius: var(--radius-xl);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 20px 25px -5px rgba(16, 185, 129, 0.2); // shadow-xl shadow-emerald-500/20
+  transition: var(--transition-fast);
+
+  &:hover {
+    background: linear-gradient(to right, var(--color-emerald-light), var(--color-teal-light));
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.hintText {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
