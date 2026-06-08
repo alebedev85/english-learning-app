@@ -1,0 +1,58 @@
+import { IWord } from "@/core/types";
+
+export const dictionaryMock: IWord[] = [
+  {
+    id: "1",
+    english: "Dream",
+    russian: "Мечта / Сон",
+    context: "Follow your dream.",
+    progress: 0,
+    status: "learning",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "2",
+    english: "Breeze",
+    russian: "Легкий ветерок",
+    context: "A warm sea breeze.",
+    progress: 25,
+    status: "learning",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "3",
+    english: "Clarity",
+    russian: "Ясность / Четкость",
+    context: "He spoke with great clarity.",
+    progress: 50,
+    status: "learning",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "4",
+    english: "Glow",
+    russian: "Свечение",
+    context: "The warm glow of the sunset.",
+    progress: 75,
+    status: "learning",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "5",
+    english: "Gravity",
+    russian: "Гравитация",
+    context: "Newton discovered gravity.",
+    progress: 100,
+    status: "learned",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "6",
+    english: "Echo",
+    russian: "Эхо",
+    context: "An echo bounced off the walls.",
+    progress: 0,
+    status: "learning",
+    createdAt: new Date().toISOString(),
+  },
+];

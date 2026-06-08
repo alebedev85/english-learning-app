@@ -1,6 +1,6 @@
 import { IWord } from "@/core/types";
 import { deleteWord, toggleWordStatus } from "@/store/slices/dictionarySlice";
-import Image from "next/image"; // Оставляем, раз используется компонент <Image />
+import Image from "next/image";
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import styles from "./WordCard.module.scss";

@@ -1,37 +1,89 @@
-'use client';
-
-import React from 'react';
+// @/components/UserProfile/UserProfile.tsx
+import React, { useState } from 'react';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { changeProfile, addProfile } from '@/store/slices/dictionarySlice';
 import styles from './ProfileManager.module.scss';
 
+// Типизация корневого состояния (можешь заменить на свой RootState из store)
+interface RootState {
+  dictionary: {
+    profiles: string[];
+    currentProfile: string;
+  };
+}
+
 export default function ProfileManager() {
-  const mockProfiles = [
-    { id: '1', name: 'Основной профиль', count: 12 },
-    { id: '2', name: 'IT Терминология', count: 45 },
-  ];
-  const activeId = '1';
+  const dispatch = useAppDispatch();
+  
+  // Достаем плоские данные из стейта по Варианту 1
+  const { profiles, currentProfile } = useAppSelector((state: RootState) => state.dictionary);
+  
+  const [newProfileName, setNewProfileName] = useState('');
+
+  const handleSelectProfile = (profileName: string) => {
+    dispatch(changeProfile(profileName));
+  };
+
+  const handleCreateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newProfileName.trim();
+    
+    if (trimmedName) {
+      dispatch(addProfile(trimmedName));
+      setNewProfileName('');
+    }
+  };
 
   return (
-    <div className={styles.container}>
-      <h2 className={styles.title}>Управление профилями обучения</h2>
-      
-      <div className={styles.grid}>
-        {mockProfiles.map((prof) => (
-          <div 
-            key={prof.id} 
-            className={`${styles.profileCard} ${prof.id === activeId ? styles.active : ''}`}
-          >
-            <div>
-              <div className={styles.profileName}>👤 {prof.name}</div>
-              <div className={styles.profileMeta}>Слов в профиле: {prof.count}</div>
-            </div>
-            {prof.id === activeId && <span className={styles.activeIndicator}>● Активен</span>}
-          </div>
-        ))}
+    <div className={styles.profileCard}>
+      <h2 className={styles.title}>
+        <span>👤</span> Профили обучения
+      </h2>
+      <p className={styles.description}>
+        Вы можете переключаться между профилями (например, для разных членов семьи или для разных уровней сложности). 
+        Каждому профилю соответствует своя независимая база слов.
+      </p>
 
-        <button className={styles.createCard}>
-          <span>+</span> Создать новый профиль
-        </button>
+      <div className={styles.listContainer}>
+        <label className={styles.label}>Выберите активный профиль:</label>
+        {profiles.map((profile) => (
+          <button
+            key={profile}
+            type="button"
+            onClick={() => handleSelectProfile(profile)}
+            className={`${styles.profileButton} ${
+              currentProfile === profile ? styles.active : styles.inactive
+            }`}
+          >
+            <span>{profile}</span>
+            {currentProfile === profile && (
+              <span className={styles.activeBadge}>
+                Активен
+              </span>
+            )}
+          </button>
+        ))}
       </div>
+
+      <form onSubmit={handleCreateProfile} className={styles.form}>
+        <label className={styles.label}>Создать новый профиль:</label>
+        <div className={styles.inputGroup}>
+          <input
+            type="text"
+            required
+            placeholder="Например, Ребенок, Advanced, Разговорный..."
+            value={newProfileName}
+            onChange={(e) => setNewProfileName(e.target.value)}
+            className={styles.input}
+          />
+          <button
+            type="submit"
+            className={styles.submitButton}
+          >
+            Создать
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
