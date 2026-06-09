@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './slices/authSlice';
 import dictionaryReducer from './slices/dictionarySlice';
 import uiReducer from './slices/uiSlice';
-// import trainingReducer from './slices/trainingSlice';
+import trainingReducer from './slices/trainingSlice';
 import { useDispatch, TypedUseSelectorHook, useSelector } from 'react-redux';
 
 export const store = configureStore({
@@ -10,7 +10,7 @@ export const store = configureStore({
     auth: authReducer,
     dictionary: dictionaryReducer,
     ui: uiReducer,
-    // training: trainingReducer,
+    training: trainingReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

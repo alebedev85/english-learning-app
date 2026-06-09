@@ -1,7 +1,7 @@
 // @/core/store/dictionarySlice.ts
 import { IWord } from "@/core/types";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { dictionaryMock } from "./mock";
+import { dictionaryMock } from "./mocks";
 
 interface DictionaryState {
   words: IWord[];
@@ -64,6 +64,20 @@ const dictionarySlice = createSlice({
     changeProfile: (state, action: PayloadAction<string>) => {
       state.currentProfile = action.payload;
     },
+    finishTrainingWords: (state, action: PayloadAction<string[]>) => {
+      const wordIds = action.payload;
+      state.words = state.words.map((word) => {
+        if (wordIds.includes(word.id)) {
+          const newProgress = (word.progress || 0) + 25; // За 4 этапа +25%
+          return {
+            ...word,
+            progress: newProgress >= 100 ? 100 : newProgress,
+            status: newProgress >= 100 ? "learned" : "learning",
+          };
+        }
+        return word;
+      });
+    },
   },
 });
 
@@ -73,5 +87,6 @@ export const {
   toggleWordStatus,
   addProfile,
   changeProfile,
+  finishTrainingWords,
 } = dictionarySlice.actions;
 export default dictionarySlice.reducer;

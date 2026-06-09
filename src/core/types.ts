@@ -5,7 +5,7 @@ export type WordStatus = 'new' | 'learning' | 'learned';
 
 // Интерфейс слова в Firestore
 export interface IWord {
-  id?: string;
+  id: string;
   english: string;
   russian: string;
   context: string;
