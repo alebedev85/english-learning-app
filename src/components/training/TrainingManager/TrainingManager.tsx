@@ -6,6 +6,7 @@ import TrainingWelcome from "@/components/training/TrainingWelcome/TrainingWelco
 import TrainingLayout from "@/components/training/TrainingLayout/TrainingLayout";
 import StageCards from "@/components/training/StageCards/StageCards";
 import styles from "./TrainingManager.module.scss";
+import StageSelect from "../StageSelect/StageSelect";
 
 function TrainingContent() {
   const { trainingSession, startTraining } = useTraining();
@@ -39,6 +40,7 @@ function TrainingContent() {
       ) : (
         <TrainingLayout>
           {trainingSession.stage === 1 && <StageCards />}
+          {trainingSession.stage === 2 && <StageSelect />}
         </TrainingLayout>
       )}
     </div>

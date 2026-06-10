@@ -1,0 +1,111 @@
+.innerWrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: var(--space-md) 0;
+  width: 100%;
+}
+
+// Блок вопроса
+.header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xl);
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.russianWord {
+  font-size: 1.875rem; // text-3xl
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+.contextText {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-style: italic;
+  max-width: 28rem; // max-w-md
+  margin: 0 auto;
+}
+
+// Сетка вариантов
+.optionsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 36rem; // max-w-xl
+  margin: 0 auto;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.optionBtn {
+  background-color: var(--bg-main);
+  border: 1px solid var(--bg-card);
+  color: var(--text-secondary);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-xl);
+  font-weight: 600;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition-fast);
+
+  &:hover {
+    background-color: var(--bg-card);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+}
+
+.optionText {
+  flex: 1;
+}
+
+.optionBadge {
+  font-size: 0.75rem;
+  font-family: monospace;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--bg-card);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+// Нижня панель подказок
+.footer {
+  margin-top: var(--space-xl);
+  text-align: center;
+}
+
+.audioHintBtn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;
+  color: var(--color-emerald-light);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  transition: var(--transition-fast);
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

@@ -151,14 +151,11 @@
   transition: var(--transition-fast);
 
   &.success {
-    // Используем rgb-переменную основного фона для наложения
-    background-color: rgba(var(--bg-main-rgb), 0.95); 
-    border: 2px solid var(--color-emerald);
+    background-color: #022c22f2;
   }
 
   &.error {
-    background-color: rgba(var(--bg-main-rgb), 0.95);
-    border: 2px solid var(--color-rose);
+    background-color: #4c0519f2;
   }
 }
 
@@ -198,4 +195,24 @@
   font-size: 0.75rem;
   color: var(--text-secondary);
   margin-top: var(--space-sm);
+}
+
+.abortZone {
+  margin-top: var(--space-md); // mt-4
+  text-align: right;          // text-right
+}
+
+.abortBtn {
+  background: none;
+  border: none;
+  font-size: 0.75rem;          // text-xs
+  color: var(--color-rose);    // Твой цвет rose для деструктивных действий
+  cursor: pointer;
+  padding: 0;
+  transition: var(--transition-fast);
+
+  &:hover {
+    text-decoration: underline; // hover:underline
+    color: var(--color-rose-light); // Слегка осветленный оттенок при ховере
+  }
 }

@@ -13,6 +13,7 @@ interface TrainingContextType {
   trainingFeedback: ITrainingFeedback | null; // Состояние оверлея обратной связи (успех/ошибка, правильный ответ)
   currentWord: IWord | null;                // Вычисляемый геттер для быстрого доступа к текущему слову
   startTraining: (words: IWord[]) => void;  // Метод инициализации и старта тренировочной сессии
+  stopTraining: () => void; // Метод для принудительной остановки сессии (например, при выходе из вкладки)
   handleAnswer: (isCorrect: boolean, correctAnswer?: string) => void; // Метод обработки ответа пользователя
 }
 
@@ -56,6 +57,13 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
     // Сбрасываем указатель текущего слова на начало массива
     setCurrentWordIndex(0);
   };
+
+  // Метод для принудительной остановки тренировки (например, при выходе пользователя из вкладки или по кнопке "Прервать")
+  const stopTraining = () => {
+  if (window.confirm("Вы уверены, что хотите прервать тренировку? Прогресс текущей сессии будет утерян.")) {
+    setTrainingSession(null);
+  }
+};
 
   /**
    * Универсальный обработчик ответа пользователя (для всех типов тренировок Stage*).
@@ -118,12 +126,30 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
 
       // 3. Анализируем результат поиска
       if (nextIndex !== -1) {
-        // Если нашли слово, которое пользователь еще не угадал (или завалил) — переключаемся на него
+        // Если нашли слово, которое пользователь еще не зафиксировал на этом этапе — переключаемся на него
         setCurrentWordIndex(nextIndex);
       } else {
-        // Если не пройденных слов больше нет (все получили true на текущем этапе) — этап успешно завершен!
-        alert(`Этап ${trainingSession.stage} успешно завершен! Все слова выучены.`);
-        setTrainingSession(null); // Переход на следующий этап или сброс
+        // Если не пройденных слов больше нет на ТЕКУЩЕМ этапе
+        if (trainingSession.stage < 4) {
+          // ПЕРЕХОД НА СЛЕДУЮЩИЙ ЭТАП
+          const nextStage = (trainingSession.stage + 1) as 1 | 2 | 3 | 4;
+          
+          setTrainingSession({
+            ...trainingSession,
+            stage: nextStage,
+            wordStates: updatedWordStates, // Сохраняем накопленную историю прохождения
+          });
+          
+          // На новом этапе начинаем с самого первого слова в массиве
+          setCurrentWordIndex(0);
+        } else {
+          // ВСЯ ТРЕНИРОВКА ИЗ 4 ЭТАПОВ ПОЛНОСТЬЮ ЗАВЕРШЕНА
+          alert("Поздравляем! Вы успешно прошли все 4 этапа тренировки для этого набора слов! 🎉");
+          
+          // TODO: Здесь в будущем будет вызов диспатча в Redux/Firebase для обновления прогресса слов (0-100%)
+          
+          setTrainingSession(null); // Закрываем сессию, возвращаемся на экран Welcome
+        }
       }
     }, 1200);
   };
@@ -139,6 +165,7 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
         trainingFeedback,
         currentWord,
         startTraining,
+        stopTraining,
         handleAnswer,
       }}
     >
