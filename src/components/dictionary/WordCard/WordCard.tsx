@@ -5,6 +5,7 @@ import { showNotificationWithTimeout } from "@/store/slices/uiSlice";
 import Image from "next/image";
 import { useState } from "react";
 import styles from "./WordCard.module.scss";
+import AudioPlayButton from "@/components/ui/AudioPlayButton/AudioPlayButton";
 
 interface WordCardProps {
   word: IWord;
@@ -62,32 +63,7 @@ export default function WordCard({ word }: WordCardProps) {
         <div className={styles.wordInfo}>
           <div className={styles.wordHeader}>
             <h3 className={styles.englishText}>{word.english}</h3>
-            <button
-              type="button"
-              onClick={() => playWordAudio(word.english, word.id)}
-              disabled={playingAudioId === word.id}
-              className={styles.audioButton}
-              title="Прослушать произношение"
-            >
-              {playingAudioId === word.id ? (
-                <span className={styles.spinner} />
-              ) : (
-                <svg
-                  width={16}
-                  height={16}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
-                  />
-                </svg>
-              )}
-            </button>
+            <AudioPlayButton text={word.english} />
           </div>
           <p className={styles.russianText}>{word.russian}</p>
         </div>

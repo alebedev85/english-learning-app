@@ -46,27 +46,6 @@
   color: var(--text-primary);
 }
 
-.audioButton {
-  padding: var(--space-xs);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  transition: var(--transition-fast);
-  display: inline-flex;
-  align-items: center;
-
-  &:hover:not(:disabled) {
-    color: var(--color-emerald-light);
-    background-color: var(--bg-card);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-  }
-}
-
 .russianText {
   color: var(--text-secondary);
   font-size: 0.875rem;

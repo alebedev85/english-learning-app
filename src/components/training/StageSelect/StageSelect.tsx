@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
+import AudioPlayButton from "@/components/ui/AudioPlayButton/AudioPlayButton";
+import { useMemo } from "react";
 import { useTraining } from "../context/TrainingContext";
 import styles from "./StageSelect.module.scss";
 
@@ -42,7 +43,9 @@ export default function StageSelect() {
         <span className={styles.label}>Выберите правильный перевод для:</span>
         <h3 className={styles.russianWord}>{currentWord.russian}</h3>
         {currentWord.context && (
-          <p className={styles.contextText}>Контекст: &quot;{currentWord.context}&quot;</p>
+          <p className={styles.contextText}>
+            Контекст: &quot;{currentWord.context}&quot;
+          </p>
         )}
       </div>
 
@@ -51,7 +54,9 @@ export default function StageSelect() {
           <button
             key={idx}
             className={styles.optionBtn}
-            onClick={() => handleAnswer(option === currentWord.english, currentWord.english)}
+            onClick={() =>
+              handleAnswer(option === currentWord.english, currentWord.english)
+            }
           >
             <span className={styles.optionText}>{option}</span>
             <span className={styles.optionBadge}>Option {idx + 1}</span>
@@ -60,9 +65,9 @@ export default function StageSelect() {
       </div>
 
       <div className={styles.footer}>
-        <button className={styles.audioHintBtn} title="Прослушать слово">
-          🔊 Подсказка (прослушать)
-        </button>
+        <AudioPlayButton text={currentWord.english} variant="ghost" size="sm">
+          Подсказка (прослушать)
+        </AudioPlayButton>
       </div>
     </div>
   );

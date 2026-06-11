@@ -1,10 +1,8 @@
 import { useAppDispatch, useAppSelector } from "@/store";
-import { deleteWord, toggleWordStatus } from "@/store/slices/dictionarySlice";
 import { setActiveTab } from "@/store/slices/uiSlice";
-import Image from "next/image";
 import { useState } from "react";
+import WordCard from "../WordCard/WordCard";
 import styles from "./DictionaryList.module.scss";
-import WordCard from "./_components/WordCard/WordCard";
 
 export default function DictionaryList() {
   const dispatch = useAppDispatch();
