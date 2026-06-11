@@ -216,3 +216,61 @@
     color: var(--color-rose-light); // Слегка осветленный оттенок при ховере
   }
 }
+
+.abortOverlay {
+  background-color: #4c0519f2; // Глубокий темно-красный bg-rose-950/95
+  z-index: 40; // Делаем выше, чем feedbackOverlay (на всякий случай)
+
+  .feedbackHint {
+    max-width: 24rem;
+    margin: var(--space-sm) auto var(--space-lg);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+}
+
+// Контейнер для кнопок внутри оверлея
+.abortActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  max-width: 20rem; // Ограничиваем ширину блока кнопок
+  justify-content: center;
+}
+
+// Базовый класс для кнопок подтверждения
+.confirmBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-lg);
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: var(--radius-xl);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition-fast);
+
+  // Кнопка удаления / прерывания
+  &.danger {
+    background-color: var(--color-rose);
+    color: var(--text-primary);
+
+    &:hover {
+      background-color: var(--color-rose-light);
+      transform: translateY(-1px);
+    }
+  }
+
+  // Кнопка отмены (остаться)
+  &.secondary {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.15);
+      color: var(--text-primary);
+    }
+  }
+}

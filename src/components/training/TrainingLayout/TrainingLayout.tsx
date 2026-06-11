@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useTraining } from "../context/TrainingContext";
 import styles from "./TrainingLayout.module.scss";
 
@@ -12,7 +12,14 @@ export default function TrainingLayout({
   const { trainingSession, currentWordIndex, trainingFeedback, stopTraining } =
     useTraining();
 
+  const [showAbortConfirm, setShowAbortConfirm] = useState(false);
+
   if (!trainingSession) return null;
+
+  const handleConfirmAbort = () => {
+    setShowAbortConfirm(false);
+    stopTraining(); // Вызываем очистку сессии из контекста (уже без window.confirm внутри)
+  };
 
   return (
     <div className={styles.container}>
@@ -100,12 +107,39 @@ export default function TrainingLayout({
           </div>
         )}
 
+        {/* НАШ НОВЫЙ ОВЕРЛЕЙ: Подтверждение прерывания тренировки */}
+        {showAbortConfirm && (
+          <div className={`${styles.feedbackOverlay} ${styles.abortOverlay}`}>
+            <div className={styles.feedbackEmoji}>🛸</div>
+            <h3 className={styles.feedbackMsg}>Прервать тренировку?</h3>
+            <p className={styles.feedbackHint}>
+              Прогресс текущей сессии будет полностью утерян, и корабль вернется на орбиту.
+            </p>
+            
+            {/* Группа кнопок выбора */}
+            <div className={styles.abortActions}>
+              <button 
+                onClick={handleConfirmAbort} 
+                className={`${styles.confirmBtn} ${styles.danger}`}
+              >
+                Да, прервать
+              </button>
+              <button 
+                onClick={() => setShowAbortConfirm(false)} 
+                className={`${styles.confirmBtn} ${styles.secondary}`}
+              >
+                Остаться
+              </button>
+            </div>
+          </div>
+        )}
+
         {children}
       </div>
 
       {/* Кнопка прерывания тренировки под основной карточкой */}
       <div className={styles.abortZone}>
-        <button onClick={stopTraining} className={styles.abortBtn}>
+        <button onClick={() => setShowAbortConfirm(true)} className={styles.abortBtn}>
           Прервать тренировку
         </button>
       </div>
