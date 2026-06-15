@@ -1,43 +1,58 @@
 "use client";
 
+import { ITrainingFeedback, ITrainingSession, IWord } from "@/core/types";
+import { finishTrainingWords } from "@/store/slices/dictionarySlice";
+import { showNotificationWithTimeout } from "@/store/slices/uiSlice";
 import React, { createContext, useContext, useState } from "react";
-import { IWord, ITrainingSession, ITrainingFeedback } from "@/core/types"; 
+import { useDispatch } from "react-redux";
 
 /**
- * Описание интерфейса контекста тренировки.
- * Определяет, какие данные и методы будут доступны всем дочерним компонентам на любой глубине.
+ * Расширяем локальный интерфейс сессии, чтобы хранить агрегированные ошибки.
+ * Это внутреннее состояние провайдера, не завязанное на внешние типы.
  */
-interface TrainingContextType {
-  trainingSession: ITrainingSession | null; // Текущая сессия (данные этапа, список слов, прогресс каждого слова)
-  currentWordIndex: number;                 // Индекс (ID позиции) текущего тестируемого слова в массиве сессии
-  trainingFeedback: ITrainingFeedback | null; // Состояние оверлея обратной связи (успех/ошибка, правильный ответ)
-  currentWord: IWord | null;                // Вычисляемый геттер для быстрого доступа к текущему слову
-  startTraining: (words: IWord[]) => void;  // Метод инициализации и старта тренировочной сессии
-  stopTraining: () => void; // Метод для принудительной остановки сессии (вызывается оверлеем подтверждения)
-  handleAnswer: (isCorrect: boolean, correctAnswer?: string) => void; // Метод обработки ответа пользователя
+interface ExtendedTrainingSession extends Omit<ITrainingSession, "wordStates"> {
+  wordStates: {
+    [wordId: string]: {
+      stage1Passed: boolean;
+      stage2Passed: boolean;
+      stage3Passed: boolean;
+      stage4Passed: boolean;
+    };
+  };
+  // Счетчик ошибок за ВСЮ сессию тренировки (ключ — id слова, значение — количество ошибок)
+  errorCounts: { [wordId: string]: number };
 }
 
-// Создаем изолированный контекст. Дефолтное значение undefined защищает от использования контекста вне провайдера.
-const TrainingContext = createContext<TrainingContextType | undefined>(undefined);
+interface TrainingContextType {
+  trainingSession: ExtendedTrainingSession | null;
+  currentWordIndex: number;
+  trainingFeedback: ITrainingFeedback | null;
+  currentWord: IWord | null;
+  startTraining: (words: IWord[]) => void;
+  stopTraining: () => void;
+  handleAnswer: (isCorrect: boolean, correctAnswer?: string) => void;
+}
 
-/**
- * Провайдер состояния тренировки (Управляющий компонент архитектуры).
- * Инкапсулирует в себе всю бизнес-логику шагов, таймеров и валидации ответов.
- */
+const TrainingContext = createContext<TrainingContextType | undefined>(
+  undefined,
+);
+
 export function TrainingProvider({ children }: { children: React.ReactNode }) {
-  // Основные реактивные состояния сессии
-  const [trainingSession, setTrainingSession] = useState<ITrainingSession | null>(null);
+  const dispatch = useDispatch(); // Инициализируем хук диспатча Redux
+
+  const [trainingSession, setTrainingSession] =
+    useState<ExtendedTrainingSession | null>(null);
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [trainingFeedback, setTrainingFeedback] = useState<ITrainingFeedback | null>(null);
+  const [trainingFeedback, setTrainingFeedback] =
+    useState<ITrainingFeedback | null>(null);
 
   /**
-   * Запуск новой сессии тренировки.
-   * Принимает отфильтрованный пакет слов (например, 6 штук из Redux / Firestore).
+   * Инициализация и запуск тренировочной сессии
    */
   const startTraining = (wordsToTrain: IWord[]) => {
-    const initialWordStates: ITrainingSession["wordStates"] = {};
-    
-    // Формируем чистую карту прохождения этапов для каждого слова сессии
+    const initialWordStates: ExtendedTrainingSession["wordStates"] = {};
+    const initialErrorCounts: ExtendedTrainingSession["errorCounts"] = {};
+
     wordsToTrain.forEach((w) => {
       initialWordStates[w.id] = {
         stage1Passed: false,
@@ -45,118 +60,151 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
         stage3Passed: false,
         stage4Passed: false,
       };
+      initialErrorCounts[w.id] = 0; // Изначально у каждого слова 0 ошибок
     });
 
-    // Записываем сессию в стейт: сбрасываем на 1 этап и передаем подготовленные данные
     setTrainingSession({
       stage: 1,
       words: wordsToTrain,
       wordStates: initialWordStates,
+      errorCounts: initialErrorCounts,
     });
-    
-    // Сбрасываем указатель текущего слова на начало массива
+
     setCurrentWordIndex(0);
   };
 
-  /**
-   * Принудительный сброс тренировки.
-   * Теперь вызывается мгновенно, так как подтверждение переехало в кастомный оверлей лейаута.
-   */
   const stopTraining = () => {
     setTrainingSession(null);
   };
 
   /**
-   * Универсальный обработчик ответа пользователя (для всех типов тренировок Stage*).
-   * @param isCorrect - зафиксирован ли правильный ответ/успешное запоминание
-   * @param correctAnswer - опциональная строка с правильным ответом (нужна для вывода работы над ошибками)
+   * Универсальный обработчик ответа пользователя с игровой логикой удержания на этапе при ошибках
    */
   const handleAnswer = (isCorrect: boolean, correctAnswer?: string) => {
     if (!trainingSession) return;
 
-    // Определяем текущее слово и динамический ключ текущего этапа (например, 'stage1Passed')
     const currentWord = trainingSession.words[currentWordIndex];
-    const stageKey = `stage${trainingSession.stage}Passed` as keyof typeof trainingSession.wordStates[string];
+    const stageKey =
+      `stage${trainingSession.stage}Passed` as keyof (typeof trainingSession.wordStates)[string];
 
-    // Иммутабельно обновляем состояние прохождения текущего этапа для конкретного слова
+    // 1. Фиксируем, пройдено ли слово на текущем этапе (только если ответ верный)
     const updatedWordStates = {
       ...trainingSession.wordStates,
       [currentWord.id]: {
         ...trainingSession.wordStates[currentWord.id],
-        [stageKey]: isCorrect,
+        [stageKey]: isCorrect, // Будет true только при правильном ответе
       },
     };
 
-    // Сохраняем обновленную карту прогресса слов в стейт сессии
+    // 2. Если ответ неверный, инкрементируем счетчик ошибок для этого слова
+    const updatedErrorCounts = {
+      ...trainingSession.errorCounts,
+      [currentWord.id]: isCorrect
+        ? trainingSession.errorCounts[currentWord.id]
+        : trainingSession.errorCounts[currentWord.id] + 1,
+    };
+
+    // Сохраняем промежуточные изменения в стейт
     setTrainingSession({
       ...trainingSession,
       wordStates: updatedWordStates,
+      errorCounts: updatedErrorCounts,
     });
 
-    // Включаем полноэкранный оверлей фидбека (компонент Layout поймает это состояние и покажет плашку)
+    // Показываем оверлей успеха/ошибки
     setTrainingFeedback(
       isCorrect
         ? { type: "success", msg: "Отлично запомнили!" }
-        : { type: "error", msg: "Ничего, повторим еще раз!", correct: correctAnswer }
+        : {
+            type: "error",
+            msg: "Неверно, слово вернется на повтор!",
+            correct: correctAnswer,
+          },
     );
 
-    // Запускаем искусственную задержку в 1.2 сек, чтобы пользователь успел считать фидбек
+    // Тайм-аут для демонстрации плашки обратной связи (1.2 сек)
     setTimeout(() => {
-      // Гасим оверлей обратной связи
       setTrainingFeedback(null);
 
-      // 1. Берем актуальное состояние wordStates (учитывая только что зафиксированный ответ)
       const currentWords = trainingSession.words;
-      const stageKey = `stage${trainingSession.stage}Passed` as keyof typeof updatedWordStates[string];
-
-      // 2. Ищем индекс следующего не пройденного слова, начиная со следующей позиции
-      let nextIndex = -1;
       const totalWords = currentWords.length;
+      let nextIndex = -1;
 
+      /**
+       * Ищем следующее не пройденное слово на ТЕКУЩЕМ этапе.
+       * Если пользователь ошибся, то `updatedWordStates[wordId][stageKey]` осталось `false`.
+       * Значит, это же слово (или другие ошибочные) снова попадутся в цикле, пока их не ответят верно!
+       */
       for (let i = 1; i <= totalWords; i++) {
-        // Вычисляем индекс с цикличным сдвигом (если вышли за пределы длины — начнем с 0)
         const checkIndex = (currentWordIndex + i) % totalWords;
         const wordId = currentWords[checkIndex].id;
-        
-        // Если у этого слова текущий этап еще не отмечен как true — мы нашли следующую цель
+
+        // Слово пойдет на повтор, если текущий этап для него равен false
         if (!updatedWordStates[wordId][stageKey]) {
           nextIndex = checkIndex;
           break;
         }
       }
 
-      // 3. Анализируем результат поиска
       if (nextIndex !== -1) {
-        // Если нашли слово, которое пользователь еще не зафиксировал на этом этапе — переключаемся на него
+        // Нашли слово для повторения/продолжения на текущем этапе
         setCurrentWordIndex(nextIndex);
       } else {
-        // Если не пройденных слов больше нет на ТЕКУЩЕМ этапе
+        // На текущем этапе ВСЕ слова успешно закрыты (все получили true)
         if (trainingSession.stage < 4) {
-          // ПЕРЕХОД НА СЛЕДУЮЩИЙ ЭТАП
+          // Переходим на следующий этап, сбрасывая индекс на начало массива
           const nextStage = (trainingSession.stage + 1) as 1 | 2 | 3 | 4;
-          
+
           setTrainingSession({
             ...trainingSession,
             stage: nextStage,
-            wordStates: updatedWordStates, // Сохраняем накопленную историю прохождения
+            wordStates: updatedWordStates,
+            errorCounts: updatedErrorCounts,
           });
-          
-          // На новом этапе начинаем с самого первого слова в массиве
+
           setCurrentWordIndex(0);
         } else {
-          // ВСЯ ТРЕНИРОВКА ИЗ 4 ЭТАПОВ ПОЛНОСТЬЮ ЗАВЕРШЕНА
-          alert("Поздравляем! Вы успешно прошли все 4 этапа тренировки для этого набора слов! 🎉");
-          
-          // TODO: Здесь в будущем будет вызов диспатча в Redux/Firebase для обновления прогресса слов (0-100%)
-          
-          setTrainingSession(null); // Закрываем сессию, возвращаемся на экран Welcome
+          /**
+           * ФИНАЛ ВСЕЙ ТРЕНИРОВКИ (Успешно закрыт 4 этап для всех слов)
+           * Рассчитываем итоги по на основе накопленных ошибок в `updatedErrorCounts`.
+           */
+          const finalPayload = currentWords.map((word) => {
+            const errors = updatedErrorCounts[word.id] || 0;
+            let action: "upgrade" | "keep" | "downgrade" = "keep";
+
+            if (errors === 0) {
+              action = "upgrade"; // 0 ошибок -> статус повышается
+            } else if (errors > 1) {
+              action = "downgrade"; // Больше 1 ошибки -> статус понижается
+            }
+            // Если ровно 1 ошибка -> останется "keep" (без изменений)
+
+            return {
+              wordId: word.id,
+              action,
+            };
+          });
+
+          // Отправляем массив результатов в Redux Store для обновления прогресса слов
+          dispatch(finishTrainingWords(finalPayload));
+
+          dispatch(
+            showNotificationWithTimeout({
+              text: "Тренировка завершена! Прогресс обновлен.",
+              type: "success",
+            }) as any,
+          ); // Приводим к any из-за несовпадения типов санки, можно улучшить типизацию при необходимости
+
+          // Закрываем сессию и возвращаем пользователя на базовый экран
+          setTrainingSession(null);
         }
       }
     }, 1200);
   };
 
-  // Вычисляемое свойство (производный стейт). Избавляет дочерние компоненты от ручного поиска текущего слова по индексу.
-  const currentWord = trainingSession ? trainingSession.words[currentWordIndex] : null;
+  const currentWord = trainingSession
+    ? trainingSession.words[currentWordIndex]
+    : null;
 
   return (
     <TrainingContext.Provider
@@ -175,15 +223,12 @@ export function TrainingProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-/**
- * Кастомный хук для безопасного доступа к контексту тренировки.
- * Избавляет от необходимости писать useContext(TrainingContext) в каждом компоненте.
- */
 export function useTraining() {
   const context = useContext(TrainingContext);
-  // Если хук вызван вне дерева <TrainingProvider>, TypeScript сразу выбросит понятную ошибку в рантайме
   if (!context) {
-    throw new Error("useTraining должен использоваться внутри TrainingProvider");
+    throw new Error(
+      "useTraining должен использоваться внутри TrainingProvider",
+    );
   }
   return context;
 }

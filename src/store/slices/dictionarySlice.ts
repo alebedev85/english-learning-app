@@ -9,6 +9,12 @@ interface DictionaryState {
   status: "idle" | "loading" | "failed";
 }
 
+// Описываем новый тип для передачи результатов из контекста в Redux
+interface WordTrainingResult {
+  wordId: string;
+  action: "upgrade" | "keep" | "downgrade";
+}
+
 const initialState: DictionaryState = {
   words: dictionaryMock,
   profiles: ["Основной профиль"],
@@ -63,18 +69,32 @@ const dictionarySlice = createSlice({
     changeProfile: (state, action: PayloadAction<string>) => {
       state.currentProfile = action.payload;
     },
-    finishTrainingWords: (state, action: PayloadAction<string[]>) => {
-      const wordIds = action.payload;
-      state.words = state.words.map((word) => {
-        if (wordIds.includes(word.id)) {
-          const newProgress = (word.progress || 0) + 25; // За 4 этапа +25%
-          return {
-            ...word,
-            progress: newProgress >= 100 ? 100 : newProgress,
-            status: newProgress >= 100 ? "learned" : "learning",
-          };
+    finishTrainingWords: (
+      state,
+      action: PayloadAction<WordTrainingResult[]>,
+    ) => {
+      const results = action.payload;
+      const resultsMap = new Map(
+        results.map((res) => [res.wordId, res.action]),
+      );
+
+      state.words.forEach((word) => {
+        if (resultsMap.has(word.id)) {
+          const trainingAction = resultsMap.get(word.id);
+          const currentProgress = word.progress || 0;
+          let newProgress = currentProgress;
+
+          if (trainingAction === "upgrade") {
+            newProgress = currentProgress + 25; // Повышаем статус
+          } else if (trainingAction === "downgrade") {
+            newProgress = currentProgress - 25; // Понижаем статус (можешь поставить -10% или -25% по вкусу)
+          }
+          // Если "keep" — newProgress остается равным currentProgress, ничего не делаем!
+
+          // Защита границ от 0% до 100%
+          word.progress = Math.max(0, Math.min(100, newProgress));
+          word.status = word.progress >= 100 ? "learned" : "learning";
         }
-        return word;
       });
     },
   },
