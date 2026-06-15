@@ -1,5 +1,6 @@
 "use client";
 
+import ActionButton from "@/components/ui/ActionButton/ActionButton";
 import { useMemo, useState } from "react";
 import { useTraining } from "../context/TrainingContext";
 import styles from "./StageConstructor.module.scss";
@@ -90,7 +91,8 @@ export default function StageConstructor() {
    */
   const handleCheck = () => {
     const assembledWord = selectedLetters.map((l) => l.char).join("");
-    const isCorrect = assembledWord.toLowerCase() === currentWord.english.toLowerCase();
+    const isCorrect =
+      assembledWord.toLowerCase() === currentWord.english.toLowerCase();
 
     // Очищаем локальный стейт сборщика перед переходом к следующему слову
     setSelectedLetters([]);
@@ -104,14 +106,15 @@ export default function StageConstructor() {
   return (
     <div className={styles.innerWrapper}>
       <div className={styles.container}>
-        
         {/* Шапка карточки шага: задание, перевод и контекстный пример */}
         <div className={styles.header}>
           <span className={styles.label}>Соберите слово из букв:</span>
           <h3 className={styles.russianWord}>{currentWord.russian}</h3>
           {currentWord.context && (
             // Кавычки заменены на безопасные HTML-мнемоники для прохождения строгих линтеров
-            <p className={styles.contextText}>&laquo;{currentWord.context}&raquo;</p>
+            <p className={styles.contextText}>
+              &laquo;{currentWord.context}&raquo;
+            </p>
           )}
         </div>
 
@@ -151,24 +154,24 @@ export default function StageConstructor() {
 
         {/* Панель управления действиями */}
         <div className={styles.actions}>
-          <button
-            type="button"
+          <ActionButton
+            variant="secondary"
+            fontSize="sm"
             onClick={handleReset}
-            className={`${styles.actionBtn} ${styles.reset}`}
-            disabled={selectedLetters.length === 0} // Задисейблено, если сбрасывать нечего
+            disabled={selectedLetters.length === 0}
           >
             Сбросить
-          </button>
-          <button
-            type="button"
+          </ActionButton>
+
+          <ActionButton
+            variant="primary"
+            fontSize="sm"
             onClick={handleCheck}
-            className={`${styles.actionBtn} ${styles.check}`}
-            disabled={isCheckDisabled} // Задисейблено, пока слово не собрано до конца
+            disabled={isCheckDisabled}
           >
             Проверить слово
-          </button>
+          </ActionButton>
         </div>
-        
       </div>
     </div>
   );
