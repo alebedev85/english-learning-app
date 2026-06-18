@@ -9,23 +9,15 @@ import ProfileManager from "@/components/profiles/ProfileManager/ProfileManager"
 import TrainingManager from "@/components/training/TrainingManager/TrainingManager";
 import AuthForm from "@/components/auth/AuthForm/AuthForm";
 import Loader from "@/components/ui/Loader/Loader";
-import { setUser } from "@/store/slices/authSlice";
-import { useEffect } from "react";
 import styles from "./page.module.scss";
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
   // Отказоустойчивый хук авторизации (Firebase + Local Fallback)
-  const { user, loading } = useAuth();
+  const { user, loading, error } = useAuth();
 
   // Получаем текущую активную вкладку из Redux UI-слайса
   const activeTab = useAppSelector((state) => state.ui.activeTab);
-
-  useEffect(() => {
-    if (user) {
-      dispatch(setUser(user));
-    }
-  }, [user, dispatch]);
 
   if (loading) {
     return (
@@ -35,6 +27,7 @@ export default function HomePage() {
           <p className={styles.loadingText}>
             Инициализация вашей персональной базы слов...
           </p>
+          {error && <p className="text-red-500 mt-4">Ошибка Firebase: {error}</p>}
         </div>
       </div>
     );
