@@ -1,6 +1,8 @@
-// @/components/WordForm/WordForm.tsx
+"use client";
+
+import { aiService } from "@/core/services/aiService";
 import { useAppDispatch } from "@/store";
-import { addWord } from "@/store/slices/dictionarySlice";
+import { saveWordThunk } from "@/store/slices/dictionarySlice";
 import { showNotificationWithTimeout } from "@/store/slices/uiSlice";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -14,21 +16,22 @@ export interface WordFormInputs {
 
 export default function WordForm() {
   const dispatch = useAppDispatch();
-  const { register, handleSubmit, reset, control } = useForm<WordFormInputs>();
+  const { register, handleSubmit, reset, control, setValue } =
+    useForm<WordFormInputs>();
 
   // Локальные состояния анимаций ИИ
   const [translatingWord, setTranslatingWord] = useState(false);
   const [generatingImg, setGeneratingImg] = useState(false);
 
+  // Следим за изменениями английского поля для работы кнопки перевода
   const currentEnglishValue = useWatch({
     control,
-    name: 'english',
+    name: "english",
   });
 
-  // Фейковый автоматический перевод (имитация работы Gemini ИИ)
-  const handleAiTranslate = () => {
+  // Функция перевода:
+  const handleAiTranslate = async () => {
     if (!currentEnglishValue?.trim()) {
-      // Предупреждение, если поле пустое
       dispatch(
         showNotificationWithTimeout({
           text: "Введите слово на английском для перевода",
@@ -39,41 +42,91 @@ export default function WordForm() {
     }
 
     setTranslatingWord(true);
-    setTimeout(() => {
-      // Здесь в будущем будет реальный запрос к API
-      setTranslatingWord(false);
+
+    try {
+      // Чистый, понятный вызов в одну строчку
+      const data =
+        await aiService.getTranslationAndContext(currentEnglishValue);
+
+      setValue("russian", data.translation);
+      setValue("context", data.example);
+
       dispatch(
         showNotificationWithTimeout({
           text: "Перевод успешно сгенерирован Gemini",
           type: "success",
         }),
       );
-    }, 1200);
-  };
-
-  const onSubmit = (data: WordFormInputs) => {
-    setGeneratingImg(true);
-
-    // Имитируем генерацию картинки через Imagen, затем сохраняем в стор
-    setTimeout(() => {
-      dispatch(
-        addWord({
-          english: data.english,
-          russian: data.russian,
-          context: data.context || "",
-        }),
-      );
-
-      setGeneratingImg(false);
-      reset(); // Очищаем форму после успешного добавления
-      // Уведомление об успешном создании карточки
+    } catch (err) {
+      console.error("Translation error:", err);
       dispatch(
         showNotificationWithTimeout({
-          text: `Слово "${data.english}" успешно добавлено в словарь!`,
-          type: "success",
+          text: "Не удалось автоматически перевести. Введите перевод вручную.",
+          type: "warning",
         }),
       );
-    }, 1500);
+    } finally {
+      setTranslatingWord(false);
+    }
+  };
+
+  // Функция сабмита формы теперь выглядит так:
+  const onSubmit = async (data: WordFormInputs) => {
+    // 1. Проверяем наличие перевода (если пользователь проигнорировал автоперевод и оставил поле пустым)
+    if (!data.russian?.trim()) {
+      dispatch(
+        showNotificationWithTimeout({
+          text: "Добавьте перевод на русский язык перед сохранением",
+          type: "warning",
+        }),
+      );
+      return;
+    }
+
+    setGeneratingImg(true); // Включаем лоадер "Генерация ИИ-иллюстрации..."
+
+    try {
+      // 2. Отправляем в Thunk чистые данные из полей формы
+      // Флаг needImage: true говорит танку, что нужно попробовать сгенерировать картинку
+      const result = await dispatch(
+        saveWordThunk({
+          english: data.english.trim(),
+          russian: data.russian.trim(),
+          context: data.context?.trim() || "",
+          needImage: true,
+        }),
+      ).unwrap();
+
+      // 3. Если всё прошло успешно (слово сохранилось)
+      reset(); // Очищаем форму
+
+      // Проверяем, создалась ли картинка на бэкенде, чтобы выдать точное уведомление
+      if (result.isImageFailed) {
+        dispatch(
+          showNotificationWithTimeout({
+            text: `Слово "${data.english}" добавлено, но картинку сгенерировать не удалось. Вы можете сделать это позже в словаре.`,
+            type: "warning",
+          }),
+        );
+      } else {
+        dispatch(
+          showNotificationWithTimeout({
+            text: `Слово "${data.english}" успешно добавлено с ИИ-иллюстрацией!`,
+            type: "success",
+          }),
+        );
+      }
+    } catch (err) {
+      console.error("Save word error:", err);
+      dispatch(
+        showNotificationWithTimeout({
+          text: "Не удалось добавить слово в словарь. Попробуйте позже.",
+          type: "error",
+        }),
+      );
+    } finally {
+      setGeneratingImg(false);
+    }
   };
 
   return (
@@ -90,22 +143,28 @@ export default function WordForm() {
         Новое слово в словарь
       </h2>
 
-      <form onSubmit={handleSubmit(onSubmit)} className={styles.formGroup} noValidate>
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className={styles.formGroup}
+        noValidate
+      >
         {/* Поле: Английское слово */}
         <div className={styles.fieldWrapper}>
           <label className={styles.label}>Слово на английском *</label>
           <div className={styles.inputRow}>
             <input
               type="text"
-              required
               placeholder="e.g. Dream"
               {...register("english", { required: true })}
+              disabled={translatingWord || generatingImg}
               className={styles.inputField}
             />
             <button
               type="button"
               onClick={handleAiTranslate}
-              disabled={translatingWord || !currentEnglishValue?.trim()}
+              disabled={
+                translatingWord || generatingImg || !currentEnglishValue?.trim()
+              }
               className={styles.translateButton}
             >
               {translatingWord ? (
@@ -122,9 +181,9 @@ export default function WordForm() {
           <label className={styles.label}>Перевод на русский *</label>
           <input
             type="text"
-            required
             placeholder="Заполнится автоматически через ИИ или введите сами"
             {...register("russian", { required: true })}
+            disabled={translatingWord || generatingImg}
             className={styles.inputField}
           />
         </div>
@@ -138,6 +197,7 @@ export default function WordForm() {
             placeholder="Заполнится автоматически примером или введите свой"
             rows={2}
             {...register("context")}
+            disabled={translatingWord || generatingImg}
             className={styles.textareaField}
           />
         </div>
@@ -162,7 +222,7 @@ export default function WordForm() {
         {/* Кнопка отправки формы */}
         <button
           type="submit"
-          disabled={generatingImg}
+          disabled={translatingWord || generatingImg}
           className={styles.submitButton}
         >
           {generatingImg ? (

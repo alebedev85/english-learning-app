@@ -53,7 +53,8 @@
 }
 
 .inputField {
-  flex: 1;
+  // flex: 1;
+  min-width: 70%;
   padding: var(--space-md) var(--space-lg);
   border-radius: var(--radius-xl);
   background-color: var(--bg-main);
@@ -76,9 +77,11 @@
 .textareaField {
   @extend .inputField;
   resize: none;
+  font-family: inherit;
 }
 
 .translateButton {
+  min-width: 20%;
   padding: 0 var(--space-lg);
   background-color: rgba(16, 185, 129, 0.1); // bg-emerald-500/10
   color: var(--color-emerald-light);
@@ -104,6 +107,7 @@
 }
 
 .spinner {
+  margin: auto;
   width: 1rem;
   height: 1rem;
   border: 2px solid var(--color-emerald-light);
@@ -133,7 +137,11 @@
 
 .submitButton {
   width: 100%;
-  background: linear-gradient(to right, var(--color-emerald), var(--color-teal));
+  background: linear-gradient(
+    to right,
+    var(--color-emerald),
+    var(--color-teal)
+  );
   color: var(--bg-main);
   font-weight: 700;
   padding: var(--space-lg) 0; // py-3.5
@@ -148,7 +156,11 @@
   gap: var(--space-sm);
 
   &:hover:not(:disabled) {
-    background: linear-gradient(to right, var(--color-emerald-light), var(--color-teal-light));
+    background: linear-gradient(
+      to right,
+      var(--color-emerald-light),
+      var(--color-teal-light)
+    );
   }
 
   &:disabled {
@@ -165,5 +177,7 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
