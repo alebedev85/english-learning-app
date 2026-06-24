@@ -37,19 +37,17 @@ async function translateWord(word: string) {
  */
 async function generateImage(word: string, translation: string) {
   const prompt = `A clean clear vector educational illustration of '${word}' (${translation}) for kids, white background, minimalist style`;
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=${GEMINI_API_KEY}`;
-
-  const payload = {
-    instances: [{ prompt: prompt }],
-    parameters: { sampleCount: 1 },
-  };
+  
+  // ⚡️ Переключаемся на бесплатную и стабильную модель Nano Banana 2
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-image:generateContent?key=${GEMINI_API_KEY}`;
 
   try {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+      })
     });
 
     if (!response.ok) {
@@ -60,11 +58,10 @@ async function generateImage(word: string, translation: string) {
     }
 
     const result = await response.json();
-
+    
     // Вытаскиваем base64 из нативного формата генерации медиафайлов Google
-    const base64Data =
-      result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-
+    const base64Data = result?.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    
     return base64Data || null;
   } catch (error) {
     console.error("🔴 Исключение при генерации картинки:", error);
@@ -77,20 +74,20 @@ async function generateImage(word: string, translation: string) {
  */
 export async function POST(req: Request) {
   try {
-    const { word, needImage } = await req.json();
+    const { english, russian, needImage } = await req.json();
 
-    if (!word?.trim()) {
-      return NextResponse.json({ error: "Слово не указано" }, { status: 400 });
-    }
+    // if (!word?.trim()) {
+    //   return NextResponse.json({ error: "Слово не указано" }, { status: 400 });
+    // }
 
     // 1. Получаем структурированный перевод
-    const aiData = await translateWord(word);
+    // const aiData = await translateWord(word);
 
     // 2. Генерируем картинку через Imagen
     let imageBase64 = null;
-    if (needImage && aiData?.translation) {
+    if (needImage) {
       try {
-        imageBase64 = await generateImage(word, aiData.translation);
+        imageBase64 = await generateImage(english, russian);
       } catch (imgError: any) {
         console.warn(
           "⚠️ Не удалось сгенерировать изображение:",
@@ -100,8 +97,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      translation: aiData.translation,
-      example: aiData.example,
+      translation: russian,
+      // example: aiData.example,
       imageBase64: imageBase64,
     });
   } catch (error: any) {

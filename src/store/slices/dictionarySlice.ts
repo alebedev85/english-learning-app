@@ -2,9 +2,10 @@ import { IWord } from "@/core/types";
 import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
 import { dictionaryMock } from "./mocks";
 import { db } from "@/core/firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
 import { uploadWordImage } from "@/core/supabase";
 import { RootState } from "@/store";
+import { aiService } from "@/core/services/aiService";
 
 interface DictionaryState {
   words: IWord[];
@@ -18,7 +19,6 @@ interface WordTrainingResult {
   action: "upgrade" | "keep" | "downgrade";
 }
 
-// Расширяем интерфейсы для поддержки мягкой логики картинок
 export interface SaveWordPayload {
   english: string;
   russian: string;
@@ -27,10 +27,19 @@ export interface SaveWordPayload {
 }
 
 export interface SaveWordResponse extends IWord {
-  isImageFailed: boolean; // Флаг для формы, чтобы сообщить, если Flux упал
+  isImageFailed: boolean; 
 }
 
-// 🚀 ДОБАВЛЯЕМ ASYNC THUNK
+// Пейлоуд для генерации картинки к уже существующему слову
+export interface GenerateImageForExistingWordPayload {
+  wordId: string;
+  english: string;
+  russian: string;
+}
+
+/**
+ * 🚀 1. САНК СОХРАНЕНИЯ СЛОВА (с забором данных из полей формы/пейлоуда)
+ */
 export const saveWordThunk = createAsyncThunk<
   SaveWordResponse,
   SaveWordPayload,
@@ -49,32 +58,18 @@ export const saveWordThunk = createAsyncThunk<
       let firestoreImageUrl = "";
       let isImageFailed = false;
 
-      // 1. Стучимся в наш роут Next.js за картинкой (если запрошена)
+      // 🛠️ Используем наш сервис для получения картинки
       if (payload.needImage) {
         try {
-          const response = await fetch("/api/generate-word", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-              word: payload.english, 
-              needImage: true 
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Если Flux успешно отдал base64, грузим в Supabase
-            if (data.imageBase64) {
-              const sanitizedFileName = payload.english
-                .trim()
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, '_');
-                
-              firestoreImageUrl = await uploadWordImage(data.imageBase64, sanitizedFileName);
-            } else {
-              isImageFailed = true;
-            }
+          const base64Data = await aiService.getImageForWord(payload.english, payload.russian);
+          
+          if (base64Data) {
+            const sanitizedFileName = payload.english
+              .trim()
+              .toLowerCase()
+              .replace(/[^a-z0-9]/g, '_');
+              
+            firestoreImageUrl = await uploadWordImage(base64Data, sanitizedFileName);
           } else {
             isImageFailed = true;
           }
@@ -84,22 +79,19 @@ export const saveWordThunk = createAsyncThunk<
         }
       }
 
-      // 2. Формируем объект слова для Firebase (перевод берется из полей формы!)
       const newWordData = {
         userId,
         english: payload.english.trim(),
         russian: payload.russian.trim(),
         context: payload.context.trim(),
-        imageUrl: firestoreImageUrl, // Будет пустой строкой, если Flux упал
+        imageUrl: firestoreImageUrl, 
         progress: 0,
         status: "learning" as const,
         createdAt: new Date().toISOString(),
       };
 
-      // 3. Запись в Firestore
       const docRef = await addDoc(collection(db, 'words'), newWordData);
 
-      // Возвращаем объект в Fulfilled + прокидываем статус картинки
       return {
         id: docRef.id,
         ...newWordData,
@@ -108,6 +100,51 @@ export const saveWordThunk = createAsyncThunk<
 
     } catch (error: any) {
       return rejectWithValue(error.message || "Не удалось сохранить слово");
+    }
+  }
+);
+
+/**
+ * 🚀 2. САНК ДЛЯ ГЕНЕРАЦИИ КАРТИНКИ К УЖЕ СУЩЕСТВУЮЩЕМУ СЛОВУ
+ */
+export const generateAndAttachImageThunk = createAsyncThunk<
+  { wordId: string; imageUrl: string },
+  GenerateImageForExistingWordPayload,
+  { state: RootState }
+>(
+  'dictionary/generateAndAttachImage',
+  async ({ wordId, english, russian }, { rejectWithValue }) => {
+    try {
+      // 🛠️ Вызываем метод сервиса вместо ручного fetch
+      const base64Data = await aiService.getImageForWord(english, russian);
+
+      if (!base64Data) {
+        throw new Error("Бэкенд не смог сгенерировать картинку или вернул пустой ответ");
+      }
+
+      // Загружаем полученный base64 в Supabase Storage
+      const sanitizedFileName = english
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '_') + `_${Date.now()}`;
+
+      const firestoreImageUrl = await uploadWordImage(base64Data, sanitizedFileName);
+
+      if (!firestoreImageUrl) {
+        throw new Error("Ошибка при загрузке картинки в Supabase");
+      }
+
+      // Обновляем поле imageUrl в Firestore
+      const wordDocRef = doc(db, 'words', wordId);
+      await updateDoc(wordDocRef, {
+        imageUrl: firestoreImageUrl
+      });
+
+      return { wordId, imageUrl: firestoreImageUrl };
+
+    } catch (error: any) {
+      console.error("🔴 Ошибка при добавлении картинки к слову:", error);
+      return rejectWithValue(error.message || "Не удалось сгенерировать картинку");
     }
   }
 );
@@ -175,17 +212,34 @@ const dictionarySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // Кейсы для сохранения нового слова
       .addCase(saveWordThunk.pending, (state) => {
         state.status = "loading";
       })
       .addCase(saveWordThunk.fulfilled, (state, action: PayloadAction<SaveWordResponse>) => {
         state.status = "idle";
-        
-        // Извлекаем чистый IWord для сохранения в стейте (убираем служебный флаг фронтенда)
         const { isImageFailed, ...pureWord } = action.payload;
         state.words.unshift(pureWord);
       })
       .addCase(saveWordThunk.rejected, (state) => {
+        state.status = "failed";
+      })
+      
+      // 🔥 Кейсы для добавления картинки к существующему слову
+      .addCase(generateAndAttachImageThunk.pending, (state) => {
+        state.status = "loading";
+      })
+      .addCase(generateAndAttachImageThunk.fulfilled, (state, action) => {
+        state.status = "idle";
+        const { wordId, imageUrl } = action.payload;
+        
+        // Находим слово локально в стейте и обновляем ему ссылку на картинку
+        const word = state.words.find(w => w.id === wordId);
+        if (word) {
+          word.imageUrl = imageUrl;
+        }
+      })
+      .addCase(generateAndAttachImageThunk.rejected, (state) => {
         state.status = "failed";
       });
   },
