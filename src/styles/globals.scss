@@ -1,11 +1,10 @@
 @use "./_variables.scss" as *;
 
 body {
+  margin: 0;
+  padding: 0;
   background-color: var(--bg-main);
   color: var(--text-primary);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

@@ -1,0 +1,62 @@
+.footer {
+  margin-top: var(--space-huge);
+  padding-top: var(--space-xl);
+  padding-bottom: var(--space-xl);
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--bg-card);
+}
+
+.container {
+  max-width: var(--layout-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+
+  // Адаптив: перестроение в строку на десктопах/планшетах
+  @media (min-width: 48rem) {
+    flex-direction: row;
+    gap: var(--space-xl);
+  }
+}
+
+.copyright {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+
+  @media (min-width: 48rem) {
+    text-align: left;
+  }
+}
+
+.socials {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: var(--transition-fast);
+  outline: none;
+
+  svg {
+    // Используем токен отступа как фиксированный чистый размер (24px)
+    width: var(--space-xl);
+    height: var(--space-xl);
+  }
+
+  &:hover {
+    color: var(--color-emerald); // WhatsApp
+  }
+}
