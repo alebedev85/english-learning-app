@@ -1,33 +1,33 @@
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setActiveTab } from "@/store/slices/uiSlice";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import WordCard from "../WordCard/WordCard";
 import styles from "./DictionaryList.module.scss";
+
+// Типизируем возможные состояния фильтра
+type FilterType = "all" | "learned" | "learning";
 
 export default function DictionaryList() {
   const dispatch = useAppDispatch();
 
+  // Локальное состояние для активного фильтра
+  const [filter, setFilter] = useState<FilterType>("all");
+
   // Достаем данные словаря из Redux
   const { words, currentProfile } = useAppSelector((state) => state.dictionary);
-
-  // Локальный стейт для имитации озвучки текста
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
-
   // Вычисляем аналитику на лету
   const totalCount = words.length;
   const learnedCount = words.filter((w) => w.status === "learned").length;
   const learningCount = totalCount - learnedCount;
 
-  // Имитация озвучки слова (интеграция с ИИ Gemini в будущем)
-  const playWordAudio = (text: string, id: string | undefined) => {
-    if (!id) return;
-    setPlayingAudioId(id);
-
-    // В будущем тут будет реальный вызов Edge TTS или Gemini Audio API
-    setTimeout(() => {
-      setPlayingAudioId(null);
-    }, 1000);
-  };
+  // Фильтруем список слов на лету в зависимости от выбранного вкладки
+  const filteredWords = useMemo(() => {
+    return words.filter((word) => {
+      if (filter === "learned") return word.status === "learned";
+      if (filter === "learning") return word.status !== "learned"; // всё, что не выучено
+      return true; // для 'all'
+    });
+  }, [words, filter]);
 
   return (
     <div className={styles.container}>
@@ -39,16 +39,35 @@ export default function DictionaryList() {
             База профиля: <strong>{currentProfile}</strong>
           </p>
         </div>
+        {/* Интерактивная строка фильтров */}
         <div className={styles.badgeRow}>
-          <span className={`${styles.badge} ${styles.emerald}`}>
+          <button
+            type="button"
+            onClick={() => setFilter("learned")}
+            className={`${styles.badge} ${styles.emerald} ${
+              filter === "learned" ? styles.active : ""
+            }`}
+          >
             Изучено: {learnedCount}
-          </span>
-          <span className={`${styles.badge} ${styles.sky}`}>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter("learning")}
+            className={`${styles.badge} ${styles.sky} ${
+              filter === "learning" ? styles.active : ""
+            }`}
+          >
             В процессе: {learningCount}
-          </span>
-          <span className={`${styles.badge} ${styles.slate}`}>
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            className={`${styles.badge} ${styles.slate} ${
+              filter === "all" ? styles.active : ""
+            }`}
+          >
             Всего: {totalCount}
-          </span>
+          </button>
         </div>
       </div>
 
@@ -68,9 +87,20 @@ export default function DictionaryList() {
             Добавить первое слово
           </button>
         </div>
+      ) : filteredWords.length === 0 ? (
+        // Дополнительный дружелюбный Empty State, если слова в словаре есть, но по данному фильтру пусто
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>🔍</div>
+          <h3 className={styles.emptyTitle}>Нет слов в этой категории</h3>
+          <p className={styles.emptyDesc}>
+            У вас пока нет слов со статусом{" "}
+            {filter === "learned" ? '"Изучено"' : '"В процессе"'}.
+          </p>
+        </div>
       ) : (
         <div className={styles.grid}>
-          {words.map((word) => (
+          {/* Рендерим отфильтрованный массив */}
+          {filteredWords.map((word) => (
             <WordCard key={word.id} word={word} />
           ))}
         </div>
