@@ -28,6 +28,18 @@
   justify-content: center;
 }
 
+.image{
+  width: 14rem; // w-56
+  height: 14rem; // h-56
+  border-radius: var(--radius-xl);
+  object-fit: cover;
+
+  @media (min-width: 768px) {
+    width: 16rem; // w-64
+    height: 16rem; // h-64
+  }
+}
+
 .imagePlaceholder {
   width: 14rem; // w-56
   height: 14rem; // h-56

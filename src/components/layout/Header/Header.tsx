@@ -19,7 +19,6 @@ export default function Header() {
   );
   const {user, loading} = useAppSelector((state) => state.auth);
 
-  // Стаб-функция выхода, пока авторизация отключена
   const handleLogout = () => {
     logout(); // Сработает очистка Redux + удаление из localStorage
     dispatch(setActiveTab("learn")); // Сброс активной вкладки
