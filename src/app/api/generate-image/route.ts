@@ -5,7 +5,7 @@ const HF_TOKEN = process.env.HF_TOKEN;
 
 async function generateImage(promptForFlux: string) {
   // Формируем чистый и строгий промпт с фокусом на типографику и смысл
-  const prompt = `A single isolated 2D vector illustration for ${promptForFlux} for kids, cute minimalist design, thick clean outlines, clean white background`;
+  const prompt = `A single isolated 2D vector illustration for this example "${promptForFlux}" for kids, cute minimalist design, thick clean outlines, clean white background`;
   
   // 🔥 Обновленный актуальный URL шлюза Hugging Face Inference
   const url =
